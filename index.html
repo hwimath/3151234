@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>일차부등식 빈출 (1)</title>
+  <style>
+    body {
+      background-color: #fff;
+      color: #000;
+      font-family: sans-serif;
+      line-height: 1.6;
+      margin: 20px;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    #container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    .hidden {
+      display: none;
+    }
+    .choice {
+      display: block;
+      margin: 8px 0;
+      padding: 6px 10px;
+      border: 1px solid #000;
+      cursor: pointer;
+    }
+    .choice.disabled {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+    #feedback {
+      margin: 10px 0;
+      font-weight: bold;
+    }
+    #next-btn, #send-score-btn {
+      margin-top: 20px;
+      padding: 8px 16px;
+      cursor: pointer;
+    }
+    #energy-bar-container {
+      width: 100%;
+      height: 20px;
+      border: 1px solid #000;
+      margin: 10px 0;
+      background-color: #fff;
+    }
+    #energy-bar {
+      height: 100%;
+      background-color: #000;
+      width: 100%;
+    }
+    #info {
+      margin: 10px 0;
+    }
+  </style>
+  <!-- 수식 렌더링(MathJax) -->
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" defer></script>
+</head>
+<body>
+  <div id="container">
+    <!-- Start Screen -->
+    <div id="start-screen">
+      <h1>일차부등식 빈출 (1)</h1>
+      <p>이름: <input type="text" id="player-name" placeholder="이름을 입력하세요"></p>
+      <p>난이도 선택:
+        <select id="difficulty-select">
+          <option value="최상">최상 (20초, 문제당 20점)</option>
+          <option value="상">상 (30초, 문제당 15점)</option>
+          <option value="중">중 (40초, 문제당 13점)</option>
+          <option value="하">하 (시간 제한 없음, 문제당 10점)</option>
+        </select>
+      </p>
+      <button id="start-btn">게임 시작</button>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="hidden">
+      <div id="info">
+        <span id="score-display">점수: 0</span> | 
+        <span id="chance-display">남은 기회: 3</span> | 
+        <span id="time-display">총 게임 시간: 0초</span>
+      </div>
+      <div id="energy-bar-container">
+        <div id="energy-bar"></div>
+      </div>
+      <div id="problem-area">
+        <!-- 문제와 보기가 동적으로 삽입됨 -->
+      </div>
+      <div id="feedback"></div>
+      <button id="next-btn" class="hidden">다음 문제</button>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div id="game-over-screen" class="hidden">
+      <h2>게임 종료</h2>
+      <p id="final-score"></p>
+      <p id="final-time"></p>
+      <button id="send-score-btn">점수전송</button>
+      <pre id="response"></pre>
+    </div>
+  </div>
+
+  <script>
+    // 난이도 설정
+    const difficultySettings = {
+      "최상": { timeLimit: 20, points: 20 },
+      "상": { timeLimit: 30, points: 15 },
+      "중": { timeLimit: 40, points: 13 },
+      "하": { timeLimit: null, points: 10 }
+    };
+
+    // 문제 데이터 (유형별 문제들)
+    // (문제 중복/삭제 등을 모두 반영한 최종본)
+    const problems = [
+      // [유형 5: a < b일 때 옳은 부등식]
+      {
+        question: "다음 조건 \\(a < b\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(\\dfrac{a}{2} > \\dfrac{b}{2}\\)", correct: false },
+          { text: "\\(a - 4 < b - 4\\)", correct: true },
+          { text: "\\(3a + 1 < 3b - 1\\)", correct: false },
+          { text: "\\(-2a + 5 < -2b + 5\\)", correct: false },
+          { text: "\\(-\\dfrac{a}{3} + 2 > -\\dfrac{b}{3} + 2\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 조건 \\(a < b\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(2a + 3 < 2b + 3\\)", correct: true },
+          { text: "\\(2a + 3 > 2b + 3\\)", correct: false },
+          { text: "\\(-a + 7 < -b + 7\\)", correct: false },
+          { text: "\\(\\dfrac{a}{5} > \\dfrac{b}{5}\\)", correct: false },
+          { text: "\\(a + 2 > b + 2\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 조건 \\(a < b\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(-\\dfrac{a}{4} > -\\dfrac{b}{4}\\)", correct: true },
+          { text: "\\(-\\dfrac{a}{4} < -\\dfrac{b}{4}\\)", correct: false },
+          { text: "\\(a + 6 > b + 6\\)", correct: false },
+          { text: "\\(3a - 2 > 3b - 2\\)", correct: false },
+          { text: "\\(\\dfrac{a}{7} > \\dfrac{b}{7}\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 조건 \\(a < b\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(4a - 1 < 4b - 1\\)", correct: true },
+          { text: "\\(4a - 1 > 4b - 1\\)", correct: false },
+          { text: "\\(-5a + 3 < -5b + 3\\)", correct: false },
+          { text: "\\(\\dfrac{a}{-2} < \\dfrac{b}{-2}\\)", correct: false },
+          { text: "\\(a + 10 > b + 10\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 조건 \\(a < b\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(-2a + 8 > -2b + 8\\)", correct: true },
+          { text: "\\(-2a + 8 < -2b + 8\\)", correct: false },
+          { text: "\\(\\dfrac{a}{3} > \\dfrac{b}{3}\\)", correct: false },
+          { text: "\\(3a + 2 > 3b + 2\\)", correct: false },
+          { text: "\\(a - 5 > b - 5\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 조건 \\(a < b\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(\\dfrac{a+4}{3} < \\dfrac{b+4}{3}\\)", correct: true },
+          { text: "\\(\\dfrac{a+4}{3} > \\dfrac{b+4}{3}\\)", correct: false },
+          { text: "\\(a + 4 > b + 4\\)", correct: false },
+          { text: "\\(2a - 1 > 2b - 1\\)", correct: false },
+          { text: "\\(-\\dfrac{a}{2} < -\\dfrac{b}{2}\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 조건 \\(a < b\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(-\\dfrac{a-3}{4} > -\\dfrac{b-3}{4}\\)", correct: true },
+          { text: "\\(-\\dfrac{a-3}{4} < -\\dfrac{b-3}{4}\\)", correct: false },
+          { text: "\\(a - 3 > b - 3\\)", correct: false },
+          { text: "\\(\\dfrac{a-3}{4} > \\dfrac{b-3}{4}\\)", correct: false },
+          { text: "\\(4a + 2 > 4b + 2\\)", correct: false }
+        ]
+      },
+      // [유형 6: -ka + c ≤ -kb + c 형태 → a ≥ b]
+      {
+        question: "다음 \\(-2a + 5 \\le -2b + 5\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(a + 3 \\ge b + 3\\)", correct: true },
+          { text: "\\(\\dfrac{a}{2} < \\dfrac{b}{2}\\)", correct: false },
+          { text: "\\(-a + 4 \\ge -b + 4\\)", correct: false },
+          { text: "\\(2a - 1 < 2b - 1\\)", correct: false },
+          { text: "\\(a - 2 < b - 2\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-3a + 7 \\le -3b + 7\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(4a + 2 \\ge 4b + 2\\)", correct: true },
+          { text: "\\(4a + 2 < 4b + 2\\)", correct: false },
+          { text: "\\(\\dfrac{a-1}{3} < \\dfrac{b-1}{3}\\)", correct: false },
+          { text: "\\(-a + 9 \\ge -b + 9\\)", correct: false },
+          { text: "\\(a + 5 < b + 5\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-4a + 10 \\le -4b + 10\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(a + 6 \\ge b + 6\\)", correct: true },
+          { text: "\\(a + 6 < b + 6\\)", correct: false },
+          { text: "\\(-\\dfrac{a}{2} \\ge -\\dfrac{b}{2}\\)", correct: false },
+          { text: "\\(\\dfrac{a}{3} < \\dfrac{b}{3}\\)", correct: false },
+          { text: "\\(2a - 3 < 2b - 3\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-5a + 12 \\le -5b + 12\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(-\\dfrac{a}{5} + 7 \\le -\\dfrac{b}{5} + 7\\)", correct: true },
+          { text: "\\(-\\dfrac{a}{5} + 7 > -\\dfrac{b}{5} + 7\\)", correct: false },
+          { text: "\\(a - 4 < b - 4\\)", correct: false },
+          { text: "\\(\\dfrac{a}{2} < \\dfrac{b}{2}\\)", correct: false },
+          { text: "\\(3a + 1 < 3b + 1\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-a + 8 \\le -b + 8\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(\\dfrac{a+2}{4} \\ge \\dfrac{b+2}{4}\\)", correct: true },
+          { text: "\\(\\dfrac{a+2}{4} < \\dfrac{b+2}{4}\\)", correct: false },
+          { text: "\\(a + 3 < b + 3\\)", correct: false },
+          { text: "\\(-2a + 5 \\ge -2b + 5\\)", correct: false },
+          { text: "\\(2a - 7 < 2b - 7\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-6a + 15 \\le -6b + 15\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(a - 5 \\ge b - 5\\)", correct: true },
+          { text: "\\(a - 5 < b - 5\\)", correct: false },
+          { text: "\\(-\\dfrac{a}{3} \\ge -\\dfrac{b}{3}\\)", correct: false },
+          { text: "\\(\\dfrac{a+1}{2} < \\dfrac{b+1}{2}\\)", correct: false },
+          { text: "\\(3a + 4 < 3b + 4\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-7a + 20 \\le -7b + 20\\)일 때, 옳은 것은?",
+        choices: [
+          { text: "\\(2a + 10 \\ge 2b + 10\\)", correct: true },
+          { text: "\\(2a + 10 < 2b + 10\\)", correct: false },
+          { text: "\\(-a + 5 \\ge -b + 5\\)", correct: false },
+          { text: "\\(\\dfrac{a-2}{3} < \\dfrac{b-2}{3}\\)", correct: false },
+          { text: "\\(a + 8 < b + 8\\)", correct: false }
+        ]
+      },
+      // [유형 7: 주어진 구간에서 일차함수 값의 범위 구하기]
+      {
+        question: "다음 \\(-3 \\le x < 5\\)일 때, \\(-2x + 7\\)의 값의 범위는?",
+        choices: [
+          { text: "\\(-3 < -2x + 7 \\le 13\\)", correct: true },
+          { text: "\\(-3 \\le -2x + 7 \\le 13\\)", correct: false },
+          { text: "\\(-3 < -2x + 7 < 13\\)", correct: false },
+          { text: "\\(-2x + 7 \\le -3\\)", correct: false },
+          { text: "\\(-2x + 7 \\ge 13\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(1 < x \\le 6\\)일 때, \\(3x - 4\\)의 값의 범위는?",
+        choices: [
+          { text: "\\(-1 < 3x - 4 \\le 14\\)", correct: true },
+          { text: "\\(-1 \\le 3x - 4 \\le 14\\)", correct: false },
+          { text: "\\(-1 < 3x - 4 < 14\\)", correct: false },
+          { text: "\\(3x - 4 \\ge 14\\)", correct: false },
+          { text: "\\(3x - 4 \\le -1\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-5 \\le x \\le 2\\)일 때, \\(-x + 3\\)의 값의 범위는?",
+        choices: [
+          { text: "\\(1 \\le -x + 3 \\le 8\\)", correct: true },
+          { text: "\\(1 < -x + 3 \\le 8\\)", correct: false },
+          { text: "\\(1 \\le -x + 3 < 8\\)", correct: false },
+          { text: "\\(-x + 3 \\ge 8\\)", correct: false },
+          { text: "\\(-x + 3 \\le 1\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(0 \\le x < 4\\)일 때, \\(2 - x\\)의 값의 범위는?",
+        choices: [
+          { text: "\\(-2 < 2 - x \\le 2\\)", correct: true },
+          { text: "\\(-2 \\le 2 - x \\le 2\\)", correct: false },
+          { text: "\\(-2 < 2 - x < 2\\)", correct: false },
+          { text: "\\(2 - x \\ge 2\\)", correct: false },
+          { text: "\\(2 - x \\le -2\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-2 < x \\le 3\\)일 때, \\(4x + 1\\)의 값의 범위는?",
+        choices: [
+          { text: "\\(-7 < 4x + 1 \\le 13\\)", correct: true },
+          { text: "\\(-7 \\le 4x + 1 \\le 13\\)", correct: false },
+          { text: "\\(-7 < 4x + 1 < 13\\)", correct: false },
+          { text: "\\(4x + 1 \\ge 13\\)", correct: false },
+          { text: "\\(4x + 1 \\le -7\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(2 \\le x < 8\\)일 때, \\(-\\dfrac{1}{2}x + 5\\)의 값의 범위는?",
+        choices: [
+          { text: "\\(1 < -\\dfrac{1}{2}x + 5 \\le 4\\)", correct: true },
+          { text: "\\(1 \\le -\\dfrac{1}{2}x + 5 \\le 4\\)", correct: false },
+          { text: "\\(1 < -\\dfrac{1}{2}x + 5 < 4\\)", correct: false },
+          { text: "\\(-\\dfrac{1}{2}x + 5 \\ge 4\\)", correct: false },
+          { text: "\\(-\\dfrac{1}{2}x + 5 \\le 1\\)", correct: false }
+        ]
+      },
+      {
+        question: "다음 \\(-1 \\le x \\le 3\\)일 때, \\(2x - 6\\)의 값의 범위는?",
+        choices: [
+          { text: "\\(-8 \\le 2x - 6 \\le 0\\)", correct: true },
+          { text: "\\(-8 < 2x - 6 \\le 0\\)", correct: false },
+          { text: "\\(-8 \\le 2x - 6 < 0\\)", correct: false },
+          { text: "\\(2x - 6 \\ge 0\\)", correct: false },
+          { text: "\\(2x - 6 \\le -8\\)", correct: false }
+        ]
+      },
+      // [유형 8: □ 안에 들어갈 부등호가 다른 문제]
+      {
+        question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
+        choices: [
+          { text: "\\(a < b\\)일 때, \\(-2a \\;□\\; -2b\\)", correct: false }, // ">"
+          { text: "\\(10 - a < 10 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
+          { text: "\\(a > b\\)일 때, \\(5a + 3 \\;□\\; 5b + 3\\)", correct: false }, // ">"
+          { text: "\\(a \\div (-4) < b \\div (-4)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
+          { text: "\\(a - 2 > b - 2\\)일 때, \\(-a \\;□\\; -b\\)", correct: true } // "<"
+        ]
+      },
+      // (답이 두 개인 문제가 있었으므로 이 문제는 삭제됨)
+      {
+        question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
+        choices: [
+          { text: "\\(a < b\\)일 때, \\(-4a \\;□\\; -4b\\)", correct: false }, // ">"
+          { text: "\\(12 - a < 12 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
+          { text: "\\(a > b\\)일 때, \\(6a + 2 \\;□\\; 6b + 2\\)", correct: false }, // ">"
+          { text: "\\(a \\div (-5) < b \\div (-5)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
+          { text: "\\(a - 3 < b - 3\\)일 때, \\(2a + 1 \\;□\\; 2b + 1\\)", correct: true } // "<"
+        ]
+      },
+      {
+        question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
+        choices: [
+          { text: "\\(a > b\\)일 때, \\(4a \\;□\\; 4b\\)", correct: true }, // ">"
+          { text: "\\(9 - a > 9 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // "<"
+          { text: "\\(a < b\\)일 때, \\(7a - 2 \\;□\\; 7b - 2\\)", correct: false }, // "<"
+          { text: "\\(a \\div (-3) > b \\div (-3)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // "<"
+          { text: "\\(a + 5 > b + 5\\)일 때, \\(-a \\;□\\; -b\\)", correct: false } // "<"
+        ]
+      },
+      {
+        question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
+        choices: [
+          { text: "\\(a < b\\)일 때, \\(2a \\;□\\; 2b\\)", correct: false }, // "<"
+          { text: "\\(11 - a < 11 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
+          { text: "\\(a < b\\)일 때, \\(-3a \\;□\\; -3b\\)", correct: false }, // ">"
+          { text: "\\(a \\div (-2) < b \\div (-2)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
+          { text: "\\(a - 4 > b - 4\\)일 때, \\(a \\;□\\; b\\)", correct: true } // "<"
+        ]
+      },
+      {
+        question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
+        choices: [
+          { text: "\\(a > b\\)일 때, \\(3a \\;□\\; 3b\\)", correct: false }, // ">"
+          { text: "\\(7 - a < 7 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
+          { text: "\\(a > b\\)일 때, \\(-2a \\;□\\; -2b\\)", correct: true },  // "<"
+          { text: "\\(a \\div (-4) > b \\div (-4)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // "<"
+          // 아래가 수정된 부분: “일 때, a □ b” 누락을 보완
+          { text: "\\(a + 1 > b + 1\\)일 때, \\(a \\;□\\; b\\)", correct: false } // "<"
+        ]
+      }
+    ];
+
+    // 전역 변수들
+    let currentProblem = null;
+    let currentProblemIndex = 0;
+    let shuffledProblems = [];
+    let score = 0;
+    let chances = 3;
+    let totalTime = 0; // 초 단위
+    let overallTimerInterval = null;
+    let problemTimerInterval = null;
+    let timeLeft = 0;
+    let difficulty = null;
+    let difficultyConfig = null;
+    let waitingForNext = false;
+
+    // 배열 섞기
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+    }
+
+    // 시작 버튼
+    document.getElementById("start-btn").addEventListener("click", () => {
+      const name = document.getElementById("player-name").value.trim();
+      if (!name) {
+        alert("이름을 입력하세요.");
+        return;
+      }
+      const diffValue = document.getElementById("difficulty-select").value;
+      difficulty = diffValue;
+      difficultyConfig = difficultySettings[diffValue];
+      // 초기화
+      score = 0;
+      chances = 3;
+      totalTime = 0;
+      currentProblemIndex = 0;
+      // 문제 섞기
+      shuffledProblems = problems.slice();
+      shuffleArray(shuffledProblems);
+
+      // 화면 전환
+      document.getElementById("start-screen").classList.add("hidden");
+      document.getElementById("game-screen").classList.remove("hidden");
+      updateInfo();
+      startOverallTimer();
+      showNextProblem();
+    });
+
+    // 전체 게임 시간 타이머
+    function startOverallTimer() {
+      overallTimerInterval = setInterval(() => {
+        totalTime++;
+        document.getElementById("time-display").innerText = "총 게임 시간: " + totalTime + "초";
+      }, 1000);
+    }
+
+    // 문제별 타이머(에너지바)
+    function startProblemTimer() {
+      if (difficultyConfig.timeLimit === null) {
+        // 시간 제한 없음
+        document.getElementById("energy-bar").style.width = "100%";
+        return;
+      }
+      timeLeft = difficultyConfig.timeLimit;
+      const bar = document.getElementById("energy-bar");
+      bar.style.width = "100%";
+      if (problemTimerInterval) clearInterval(problemTimerInterval);
+      problemTimerInterval = setInterval(() => {
+        timeLeft -= 0.1;
+        if (timeLeft <= 0) {
+          clearInterval(problemTimerInterval);
+          handleTimeout();
+        }
+        let percent = (timeLeft / difficultyConfig.timeLimit) * 100;
+        bar.style.width = percent + "%";
+      }, 100);
+    }
+
+    // 타임아웃 처리
+    function handleTimeout() {
+      if (waitingForNext) return;
+      disableChoices();
+      const feedback = document.getElementById("feedback");
+      feedback.innerText = "시간 초과! 정답: " + getCurrentCorrectText();
+      chances--;
+      updateInfo();
+      waitingForNext = true;
+      document.getElementById("next-btn").classList.remove("hidden");
+      checkGameOver();
+    }
+
+    // 현재 문제의 정답 텍스트
+    function getCurrentCorrectText() {
+      for (const choice of currentProblem.choices) {
+        if (choice.correct) return choice.text;
+      }
+      return "";
+    }
+
+    // 문제 표시
+    function showNextProblem() {
+      waitingForNext = false;
+      document.getElementById("feedback").innerText = "";
+      document.getElementById("next-btn").classList.add("hidden");
+      // 소진 시 문제 다시 섞기
+      if (currentProblemIndex >= shuffledProblems.length) {
+        shuffledProblems = problems.slice();
+        shuffleArray(shuffledProblems);
+        currentProblemIndex = 0;
+      }
+      currentProblem = JSON.parse(JSON.stringify(shuffledProblems[currentProblemIndex]));
+      currentProblemIndex++;
+      // 보기도 섞기
+      shuffleArray(currentProblem.choices);
+      renderProblem();
+      startProblemTimer();
+      MathJax.typeset(); // 수식 렌더링
+    }
+
+    // 문제 영역 렌더링
+    function renderProblem() {
+      const area = document.getElementById("problem-area");
+      area.innerHTML = "";
+      const qElem = document.createElement("div");
+      qElem.innerHTML = "<p>" + currentProblem.question + "</p>";
+      area.appendChild(qElem);
+      currentProblem.choices.forEach((choice, index) => {
+        const btn = document.createElement("div");
+        btn.className = "choice";
+        btn.dataset.index = index;
+        btn.innerHTML = choice.text;
+        btn.addEventListener("click", () => selectChoice(index));
+        area.appendChild(btn);
+      });
+    }
+
+    // 선택지 비활성화
+    function disableChoices() {
+      const choices = document.querySelectorAll(".choice");
+      choices.forEach(c => c.classList.add("disabled"));
+    }
+
+    // 선택 처리
+    function selectChoice(index) {
+      if (waitingForNext) return;
+      disableChoices();
+      clearInterval(problemTimerInterval);
+      const chosen = currentProblem.choices[index];
+      const feedback = document.getElementById("feedback");
+      if (chosen.correct) {
+        feedback.innerText = "정답!";
+        score += difficultyConfig.points;
+      } else {
+        feedback.innerText = "오답! 정답: " + getCurrentCorrectText();
+        chances--;
+      }
+      updateInfo();
+      waitingForNext = true;
+      document.getElementById("next-btn").classList.remove("hidden");
+      checkGameOver();
+    }
+
+    // 정보 갱신
+    function updateInfo() {
+      document.getElementById("score-display").innerText = "점수: " + score;
+      document.getElementById("chance-display").innerText = "남은 기회: " + chances;
+    }
+
+    // 다음 문제 버튼
+    document.getElementById("next-btn").addEventListener("click", () => {
+      if (!waitingForNext) return;
+      showNextProblem();
+    });
+
+    // 게임오버 검사
+    function checkGameOver() {
+      if (chances <= 0) {
+        clearInterval(overallTimerInterval);
+        clearInterval(problemTimerInterval);
+        document.getElementById("game-screen").classList.add("hidden");
+        document.getElementById("game-over-screen").classList.remove("hidden");
+        document.getElementById("final-score").innerText = "최종 점수: " + score;
+        document.getElementById("final-time").innerText = "총 게임 시간: " + totalTime + "초";
+      }
+    }
+
+    // 점수전송
+    function saveData(game, name, score, elapsedTime) {
+      const FUNCTION_URL = "https://us-central1-record-f420d.cloudfunctions.net/report";
+
+      const requestData = {
+        game,
+        name,
+        score: parseInt(score, 10),
+        elapsedTime: parseInt(elapsedTime, 10)
+      };
+
+      fetch(FUNCTION_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestData)
+      })
+      .then(response => {
+        return response.json().then(data => ({ ok: response.ok, data }));
+      })
+      .then(result => {
+        if (result.ok) {
+          document.getElementById('response').innerText =
+            "성공: " + JSON.stringify(result.data, null, 2);
+        } else {
+          document.getElementById('response').innerText =
+            "오류: " + JSON.stringify(result.data, null, 2);
+        }
+      })
+      .catch(error => {
+        console.error('요청 실패:', error);
+        document.getElementById('response').innerText =
+          "네트워크 오류: " + error.message;
+      });
+    }
+
+    // 점수전송 버튼
+    document.getElementById("send-score-btn").addEventListener("click", () => {
+      const playerName = document.getElementById("player-name").value.trim();
+      saveData("일차부등식 빈출 (1)", playerName, score, totalTime);
+    });
+  </script>
+</body>
+</html>
