@@ -114,7 +114,7 @@
     };
 
     // 문제 데이터 (유형별 문제들)
-    // (문제 중복/삭제 등을 모두 반영한 최종본)
+    // 부등호 방향 문제(유형 8)에서 오류를 수정하였습니다.
     const problems = [
       // [유형 5: a < b일 때 옳은 부등식]
       {
@@ -333,53 +333,45 @@
       {
         question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
         choices: [
-          { text: "\\(a < b\\)일 때, \\(-2a \\;□\\; -2b\\)", correct: false }, // ">"
-          { text: "\\(10 - a < 10 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
-          { text: "\\(a > b\\)일 때, \\(5a + 3 \\;□\\; 5b + 3\\)", correct: false }, // ">"
-          { text: "\\(a \\div (-4) < b \\div (-4)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
-          { text: "\\(a - 2 > b - 2\\)일 때, \\(-a \\;□\\; -b\\)", correct: true } // "<"
+          // a < b이면 양변에 음수를 곱하므로 부등호 방향이 반대: ">"가 되어야 함.
+          { text: "\\(a < b\\)일 때, \\(-2a \\;□\\; -2b\\)", correct: false },
+          { text: "\\(10 - a < 10 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false },
+          { text: "\\(a > b\\)일 때, \\(5a + 3 \\;□\\; 5b + 3\\)", correct: false },
+          { text: "\\(a \\div (-4) < b \\div (-4)\\)일 때, \\(a \\;□\\; b\\)", correct: false },
+          // a - 2 > b - 2 ⇒ a > b이므로 -a < -b: 나머지와 부호가 반대됨.
+          { text: "\\(a - 2 > b - 2\\)일 때, \\(-a \\;□\\; -b\\)", correct: true }
         ]
       },
-      // (답이 두 개인 문제가 있었으므로 이 문제는 삭제됨)
+      // 이전에 답이 두 개인 문제이므로 삭제 (제거됨)
+      // {
+      //   question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
+      //   choices: [
+      //     { text: "\\(a < b\\)일 때, \\(-4a \\;□\\; -4b\\)", correct: false },
+      //     { text: "\\(12 - a < 12 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false },
+      //     { text: "\\(a > b\\)일 때, \\(6a + 2 \\;□\\; 6b + 2\\)", correct: false },
+      //     { text: "\\(a \\div (-5) < b \\div (-5)\\)일 때, \\(a \\;□\\; b\\)", correct: false },
+      //     { text: "\\(a - 3 < b - 3\\)일 때, \\(2a + 1 \\;□\\; 2b + 1\\)", correct: true }
+      //   ]
+      // },
       {
         question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
         choices: [
-          { text: "\\(a < b\\)일 때, \\(-4a \\;□\\; -4b\\)", correct: false }, // ">"
-          { text: "\\(12 - a < 12 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
-          { text: "\\(a > b\\)일 때, \\(6a + 2 \\;□\\; 6b + 2\\)", correct: false }, // ">"
-          { text: "\\(a \\div (-5) < b \\div (-5)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
-          { text: "\\(a - 3 < b - 3\\)일 때, \\(2a + 1 \\;□\\; 2b + 1\\)", correct: true } // "<"
-        ]
-      },
-      {
-        question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
-        choices: [
-          { text: "\\(a > b\\)일 때, \\(4a \\;□\\; 4b\\)", correct: true }, // ">"
-          { text: "\\(9 - a > 9 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // "<"
-          { text: "\\(a < b\\)일 때, \\(7a - 2 \\;□\\; 7b - 2\\)", correct: false }, // "<"
-          { text: "\\(a \\div (-3) > b \\div (-3)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // "<"
-          { text: "\\(a + 5 > b + 5\\)일 때, \\(-a \\;□\\; -b\\)", correct: false } // "<"
-        ]
-      },
-      {
-        question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
-        choices: [
-          { text: "\\(a < b\\)일 때, \\(2a \\;□\\; 2b\\)", correct: false }, // "<"
-          { text: "\\(11 - a < 11 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
-          { text: "\\(a < b\\)일 때, \\(-3a \\;□\\; -3b\\)", correct: false }, // ">"
-          { text: "\\(a \\div (-2) < b \\div (-2)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
-          { text: "\\(a - 4 > b - 4\\)일 때, \\(a \\;□\\; b\\)", correct: true } // "<"
+          { text: "\\(a > b\\)일 때, \\(4a \\;□\\; 4b\\)", correct: true },
+          { text: "\\(9 - a > 9 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false },
+          { text: "\\(a < b\\)일 때, \\(7a - 2 \\;□\\; 7b - 2\\)", correct: false },
+          { text: "\\(a \\div (-3) > b \\div (-3)\\)일 때, \\(a \\;□\\; b\\)", correct: false },
+          { text: "\\(a + 5 > b + 5\\)일 때, \\(-a \\;□\\; -b\\)", correct: false }
         ]
       },
       {
         question: "다음 각 식에서 □ 안에 들어갈 부등호가 다른 것은?",
         choices: [
-          { text: "\\(a > b\\)일 때, \\(3a \\;□\\; 3b\\)", correct: false }, // ">"
-          { text: "\\(7 - a < 7 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // ">"
-          { text: "\\(a > b\\)일 때, \\(-2a \\;□\\; -2b\\)", correct: true },  // "<"
-          { text: "\\(a \\div (-4) > b \\div (-4)\\)일 때, \\(a \\;□\\; b\\)", correct: false }, // "<"
-          // 아래가 수정된 부분: “일 때, a □ b” 누락을 보완
-          { text: "\\(a + 1 > b + 1\\)일 때, \\(a \\;□\\; b\\)", correct: false } // "<"
+          // 수정: a < b이면 2a < 2b → "<"
+          { text: "\\(a < b\\)일 때, \\(2a \\;□\\; 2b\\)", correct: true },
+          { text: "\\(11 - a < 11 - b\\)일 때, \\(a \\;□\\; b\\)", correct: false },
+          { text: "\\(a < b\\)일 때, \\(-3a \\;□\\; -3b\\)", correct: false },
+          { text: "\\(a \\div (-2) < b \\div (-2)\\)일 때, \\(a \\;□\\; b\\)", correct: false },
+          { text: "\\(a - 4 > b - 4\\)일 때, \\(a \\;□\\; b\\)", correct: false }
         ]
       }
     ];
